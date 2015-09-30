@@ -913,7 +913,7 @@ OpenIDConnect.prototype.token = function() {
 		                            .populate('accessTokens')
 		                            .populate('refreshTokens')
                                     .exec(function(err, auth) {
-                                        if(auth && !auth.access.length && !auth.refresh.length) {
+                                        if(auth.access && !auth.access.length && auth.refresh && !auth.refresh.length) {
                                             auth.destroy();
                                         }
                                     });
@@ -952,7 +952,7 @@ OpenIDConnect.prototype.token = function() {
 				                            .populate('accessTokens')
 				                            .populate('refreshTokens')
                                             .exec(function(err, auth) {
-                                                if(auth && !auth.access.length && !auth.refresh.length) {
+                                                if(auth.access && !auth.access.length && auth.refresh && !auth.refresh.length) {
                                                     auth.destroy();
                                                 }
                                             });
