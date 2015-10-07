@@ -17,7 +17,7 @@ _ = require('lodash'),
 extend = require('extend'),
 url = require('url'),
 Q = require('q'),
-jwt = require('jwt-simple'),
+jwt = require('jsonwebtoken'),
 util = require("util"),
 base64url = require('base64url'),
 cleanObj = require('clean-obj');
@@ -641,7 +641,15 @@ OpenIDConnect.prototype.auth = function() {
                                 var hbuf = crypto.createHmac('sha256', req.session.client_secret).update(resp.access_token).digest();
                                 resp.id_token.at_hash = base64url(hbuf.toString('ascii', 0, hbuf.length/2));
                                 console.log('--> JWT encoding with key '+req.session.client_secret);
-                                resp.id_token = jwt.encode(resp.id_token, self.settings.key?self.settings.key.val:req.session.client_secret);
+                                console.log('--> JWT encoding - id token claims are '+JSON.stringify(resp.id_token));
+                                var p = {};
+                                if(resp.id_token.nonce) p.nonce = resp.id_token.nonce;
+                                var opt = {};
+                                opt.audience = resp.id_token.aud;
+                                opt.subject = resp.id_token.sub;
+                                opt.issuer = resp.id_token.iss;
+                                opt.expiresIn = 3600;
+                                resp.id_token = jwt.sign(p, self.settings.key?self.settings.key.val:req.session.client_secret, opt);
                             }
                             deferred.resolve({params: params, type: params.response_type != 'code'?'f':'q', resp: resp});
                         });
@@ -935,13 +943,20 @@ OpenIDConnect.prototype.token = function() {
                               id_token.nonce = prev.auth.nonce;
                             }
                             console.log('--> Create access model, jwt key is '+prev.client.secret);
+                            var p = {};
+                            if(id_token.nonce) p.nonce = id_token.nonce;
+                            var opt = {};
+                            opt.audience = id_token.aud;
+                            opt.subject = id_token.sub;
+                            opt.issuer = id_token.iss;
+                            opt.expiresIn = 3600;
                             req.model.access.create({
                                     token: access,
                                     type: 'Bearer',
                                     expiresIn: 3600,
                                     user: prev.user||null,
                                     client: prev.client.id,
-                                    idToken: jwt.encode(id_token, self.settings.key?self.settings.key.val:prev.client.secret),
+                                    idToken: jwt.sign(p, self.settings.key?self.settings.key.val:prev.client.secret, opt),
                                     scope: prev.scope,
                                     auth: prev.auth?prev.auth.id:null
                             },
