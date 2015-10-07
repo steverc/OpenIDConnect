@@ -27,6 +27,7 @@ var defaults = {
         login_url: '/login',
         consent_url: '/consent',
         iss: null,
+        key: null,
         scopes: {
             openid: 'Informs the Authorization Server that the Client is making an OpenID Connect request.',
             profile:'Access to the End-User\'s default profile Claims.',
@@ -639,7 +640,8 @@ OpenIDConnect.prototype.auth = function() {
                             if(resp.access_token && resp.id_token) {
                                 var hbuf = crypto.createHmac('sha256', req.session.client_secret).update(resp.access_token).digest();
                                 resp.id_token.at_hash = base64url(hbuf.toString('ascii', 0, hbuf.length/2));
-                                resp.id_token = jwt.encode(resp.id_token, req.session.client_secret);
+                                console.log('--> JWT encoding with key '+req.session.client_secret);
+                                resp.id_token = jwt.encode(resp.id_token, self.settings.key?self.settings.key.val:req.session.client_secret);
                             }
                             deferred.resolve({params: params, type: params.response_type != 'code'?'f':'q', resp: resp});
                         });
@@ -932,13 +934,14 @@ OpenIDConnect.prototype.token = function() {
                             if(prev.auth.nonce) {
                               id_token.nonce = prev.auth.nonce;
                             }
+                            console.log('--> Create access model, jwt key is '+prev.client.secret);
                             req.model.access.create({
                                     token: access,
                                     type: 'Bearer',
                                     expiresIn: 3600,
                                     user: prev.user||null,
                                     client: prev.client.id,
-                                    idToken: jwt.encode(id_token, prev.client.secret),
+                                    idToken: jwt.encode(id_token, self.settings.key?self.settings.key.val:prev.client.secret),
                                     scope: prev.scope,
                                     auth: prev.auth?prev.auth.id:null
                             },
@@ -1172,6 +1175,10 @@ OpenIDConnect.prototype.removetokens = function() {
                 }
             }
             ];
+};
+
+OpenIDConnect.prototype.setKey = function(val) {
+
 };
 
 exports.oidc = function(options) {
