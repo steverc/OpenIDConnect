@@ -649,7 +649,9 @@ OpenIDConnect.prototype.auth = function() {
                                 opt.subject = resp.id_token.sub;
                                 opt.issuer = resp.id_token.iss;
                                 opt.expiresIn = 3600;
-                                resp.id_token = jwt.sign(p, self.settings.key?self.settings.key.val:req.session.client_secret, opt);
+                                opt.headers = self.settings.key?{kid: self.settings.key.kid}:{};
+                                var key = self.settings.key?self.settings.key.val:req.session.client_secret;
+                                resp.id_token = jwt.sign(p, key, opt);
                             }
                             deferred.resolve({params: params, type: params.response_type != 'code'?'f':'q', resp: resp});
                         });
@@ -950,13 +952,15 @@ OpenIDConnect.prototype.token = function() {
                             opt.subject = id_token.sub;
                             opt.issuer = id_token.iss;
                             opt.expiresIn = 3600;
+                            opt.headers = self.settings.key?{kid: self.settings.key.kid}:{};
+                            var key = self.settings.key?self.settings.key.val:prev.client.secret;
                             req.model.access.create({
                                     token: access,
                                     type: 'Bearer',
                                     expiresIn: 3600,
                                     user: prev.user||null,
                                     client: prev.client.id,
-                                    idToken: jwt.sign(p, self.settings.key?self.settings.key.val:prev.client.secret, opt),
+                                    idToken: jwt.sign(p, key, opt),
                                     scope: prev.scope,
                                     auth: prev.auth?prev.auth.id:null
                             },
