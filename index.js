@@ -650,6 +650,7 @@ OpenIDConnect.prototype.auth = function() {
                                 opt.issuer = resp.id_token.iss;
                                 opt.expiresIn = 3600;
                                 opt.headers = self.settings.key?{kid: self.settings.key.kid}:{};
+                                //opt.algorithm = 'RS256';
                                 var key = self.settings.key?self.settings.key.val:req.session.client_secret;
                                 resp.id_token = jwt.sign(p, key, opt);
                             }
@@ -953,6 +954,7 @@ OpenIDConnect.prototype.token = function() {
                             opt.issuer = id_token.iss;
                             opt.expiresIn = 3600;
                             opt.headers = self.settings.key?{kid: self.settings.key.kid}:{};
+                            //opt.algorithm = 'RS256';
                             var key = self.settings.key?self.settings.key.val:prev.client.secret;
                             req.model.access.create({
                                     token: access,
@@ -1114,13 +1116,17 @@ OpenIDConnect.prototype.userInfo = function() {
                     if(!err && access) {
                         req.model.user.findOne({id: access.user}, function(err, user) {
                             if(req.check.scopes.indexOf('profile') != -1) {
-                                user.sub = req.session.sub||req.session.user;
+                                if(typeof user.sub === 'undefined')
+                                  user.sub = req.session.sub||req.session.user;
                                 delete user.id;
                                 delete user.password;
                                 delete user.openidProvider;
                                 res.json(user);
                             } else {
-                                res.json({email: user.email});
+                                res.json({
+                                  email: user.email,
+                                  sub: user.sub
+                                });
                             }
                         });
                     } else {
