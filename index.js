@@ -320,14 +320,14 @@ OpenIDConnect.prototype.errorHandle = function(res, uri, error, desc) {
 
 OpenIDConnect.prototype.endpointParams = function (spec, req, res, next) {
     try {
-        req.parsedParams = this.parseParams(req, res, spec);
+        req.parsedParams = this.parseParams(req, res, next, spec);
         next();
     } catch(err) {
         this.errorHandle(res, err.uri, err.error, err.msg);
     }
 }
 
-OpenIDConnect.prototype.parseParams = function(req, res, spec) {
+OpenIDConnect.prototype.parseParams = function(req, res, next, spec) {
     var params = {};
     var r = req.param('redirect_uri');
     for(var i in spec) {
@@ -363,7 +363,8 @@ OpenIDConnect.prototype.parseParams = function(req, res, spec) {
             }
 
             if(error) {
-                throw {type: 'error', uri: r, error: 'invalid_request', msg: 'Parameter '+i+' is mandatory.'};
+                next({type: 'error', uri: r, error: 'invalid_request', msg: 'Parameter '+i+' is mandatory.'});
+                //throw {type: 'error', uri: r, error: 'invalid_request', msg: 'Parameter '+i+' is mandatory.'};
                 //this.errorHandle(res, r, 'invalid_request', 'Parameter '+i+' is mandatory.');
                 //return;
             }
