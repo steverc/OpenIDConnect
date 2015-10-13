@@ -927,7 +927,7 @@ OpenIDConnect.prototype.token = function() {
 		                            .populate('accessTokens')
 		                            .populate('refreshTokens')
                                     .exec(function(err, auth) {
-                                        if(!auth.accessTokens.length && !auth.refreshTokens.length) {
+                                        if(auth & !auth.accessTokens.length && !auth.refreshTokens.length) {
                                             auth.destroy();
                                         }
                                     });
@@ -980,7 +980,7 @@ OpenIDConnect.prototype.token = function() {
 				                            .populate('accessTokens')
 				                            .populate('refreshTokens')
                                             .exec(function(err, auth) {
-                                                if(!auth.accessTokens.length && !auth.refreshTokens.length) {
+                                                if(auth && !auth.accessTokens.length && !auth.refreshTokens.length) {
                                                     auth.destroy();
                                                 }
                                             });
