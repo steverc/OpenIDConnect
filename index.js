@@ -1109,26 +1109,29 @@ OpenIDConnect.prototype.check = function() {
 OpenIDConnect.prototype.userInfo = function() {
     var self = this;
     return [
-            self.check('openid', /profile|email/),
+            self.check('openid', /profile|email|phone/),
             self.use({policies: {loggedIn: false}, models: ['access', 'user']}),
             function(req, res, next) {
                 req.model.access.findOne({token: req.parsedParams.access_token})
                 .exec(function(err, access) {
                     if(!err && access) {
                         req.model.user.findOne({id: access.user}, function(err, user) {
+                            var result = {
+                              sub: user.sub
+                            };
                             if(req.check.scopes.indexOf('profile') != -1) {
-                                if(typeof user.sub === 'undefined')
-                                  user.sub = req.session.sub||req.session.user;
-                                delete user.id;
-                                delete user.password;
-                                delete user.openidProvider;
-                                res.json(user);
-                            } else {
-                                res.json({
-                                  email: user.email,
-                                  sub: user.sub
-                                });
+                              result.given_name = user.given_name;
+                              result.middle_name = user.middle_name;
+                              result.family_name = user.family_name;
+                              result.name = user.name;
                             }
+                            if(req.check.scopes.indexOf('email') != -1) {
+                              result.email = user.email;
+                            }
+                            if(req.check.scopes.indexOf('phone') != -1) {
+                              result.phone_number = user.phone_number;
+                            }
+                            res.json(result);
                         });
                     } else {
                         self.errorHandle(res, null, 'unauthorized_client', 'Access token is not valid.');
