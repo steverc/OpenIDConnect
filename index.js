@@ -646,6 +646,7 @@ OpenIDConnect.prototype.auth = function() {
                                 console.log('--> JWT encoding - id token claims are '+JSON.stringify(resp.id_token));
                                 var p = {};
                                 p.azp = resp.id_token.azp;
+                                p.at_hash = resp.id_token.at_hash;
                                 if(resp.id_token.nonce) p.nonce = resp.id_token.nonce;
                                 var opt = {};
                                 opt.audience = resp.id_token.aud;
@@ -952,6 +953,8 @@ OpenIDConnect.prototype.token = function() {
                             console.log('--> Create access model, jwt key is '+prev.client.secret);
                             var p = {};
                             p.azp = id_token.azp;
+                            var hbuf = crypto.createHmac('sha256', prev.client.secret).update(access).digest();
+                            p.at_hash = base64url(hbuf.toString('ascii', 0, hbuf.length/2));
                             if(id_token.nonce) p.nonce = id_token.nonce;
                             var opt = {};
                             opt.audience = id_token.aud;
