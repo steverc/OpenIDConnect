@@ -590,7 +590,8 @@ OpenIDConnect.prototype.auth = function() {
                                         aud: params.client_id,
                                         exp: d+3600,
                                         iat: d,
-                                        nonce: params.nonce
+                                        nonce: params.nonce,
+                                        azp: params.client_id
                                 }});
                                 //def.resolve({id_token: jwt.encode(id_token, req.session.client_secret)});
                                 break;
@@ -644,6 +645,7 @@ OpenIDConnect.prototype.auth = function() {
                                 console.log('--> JWT encoding with key '+req.session.client_secret);
                                 console.log('--> JWT encoding - id token claims are '+JSON.stringify(resp.id_token));
                                 var p = {};
+                                p.azp = resp.id_token.azp;
                                 if(resp.id_token.nonce) p.nonce = resp.id_token.nonce;
                                 var opt = {};
                                 opt.audience = resp.id_token.aud;
@@ -941,13 +943,15 @@ OpenIDConnect.prototype.token = function() {
                                     sub: prev.sub||prev.user||null,
                                     aud: prev.client.key,
                                     exp: d+3600,
-                                    iat: d
+                                    iat: d,
+                                    azp: prev.client.key
                             };
                             if(prev.auth.nonce) {
                               id_token.nonce = prev.auth.nonce;
                             }
                             console.log('--> Create access model, jwt key is '+prev.client.secret);
                             var p = {};
+                            p.azp = id_token.azp;
                             if(id_token.nonce) p.nonce = id_token.nonce;
                             var opt = {};
                             opt.audience = id_token.aud;
