@@ -216,7 +216,7 @@ function parse_authorization(authorization) {
 function OpenIDConnect(options) {
     this.settings = extend(true, {}, defaults, options);
 
-    //allow removing attributes, by marking thme as null
+    //allow removing attributes, by marking them as null
     cleanObj(this.settings.models, true);
 
     for(var i in this.settings.policies) {
@@ -492,10 +492,15 @@ OpenIDConnect.prototype.auth = function() {
                     req.session.scopes = {};
                     var promises = [];
                     req.model.consent.findOne({user: req.session.user, client: req.session.client_id}, function(err, consent) {
+                            if(reqsco.indexOf('openid') === -1) {
+                                var innerDef = Q.defer();
+                                innerDef.reject({type: 'error', uri: params.redirect_uri, error: 'invalid_scope', msg: 'Missing openid scope'});
+                                promises.push(innerDef.promise);
+                            }
                             reqsco.forEach(function(scope) {
                                 var innerDef = Q.defer();
                                 if(!self.settings.scopes[scope]) {
-                                    innerDef.reject({type: 'error', uri: params.redirect_uri, error: 'invalid_scope', msg: 'Scope '+scope+' not supported.'});
+                                    innerDef.reject({type: 'error', uri: params.redirect_uri, error: 'invalid_scope', msg: 'Scope '+scope+' not supported'});
                                 }
                                 if(!consent) {
                                     req.session.scopes[scope] = {ismember: false, explain: self.settings.scopes[scope]};
@@ -509,17 +514,18 @@ OpenIDConnect.prototype.auth = function() {
                             });
 
                             Q.allSettled(promises).then(function(results){
-                                var redirect = false;
+                                var redirect = null;
                                 for(var i = 0; i<results.length; i++) {
-                                    if(results[i].value) {
-                                        redirect = true;
+                                    if(results[i].state !== 'fulfilled') {
+                                        redirect = results[i].reason.uri+'?error='+results[i].reason.error;
+                                        redirect += '&error_description='+encodeURIComponent(results[i].reason.msg);
+                                        if(params.state) redirect += '&state='+params.state;
                                         break;
                                     }
                                 }
                                 if(redirect) {
-                                    req.session.client_key = params.client_id;
-                                    var q = req.path+'?'+querystring.stringify(params);
-                                    deferred.reject({type: 'redirect', uri: self.settings.consent_url+'?'+querystring.stringify({return_url: q})});
+                                    //req.session.client_key = params.client_id;
+                                    deferred.reject({type: 'redirect', uri: redirect});
                                 } else {
                                     deferred.resolve(params);
                                 }
@@ -642,8 +648,6 @@ OpenIDConnect.prototype.auth = function() {
                             if(resp.access_token && resp.id_token) {
                                 var hbuf = crypto.createHmac('sha256', req.session.client_secret).update(resp.access_token).digest();
                                 resp.id_token.at_hash = base64url(hbuf.toString('ascii', 0, hbuf.length/2));
-                                console.log('--> JWT encoding with key '+req.session.client_secret);
-                                console.log('--> JWT encoding - id token claims are '+JSON.stringify(resp.id_token));
                                 var p = {};
                                 p.azp = resp.id_token.azp;
                                 p.at_hash = resp.id_token.at_hash;
@@ -931,7 +935,7 @@ OpenIDConnect.prototype.token = function() {
 		                            .populate('accessTokens')
 		                            .populate('refreshTokens')
                                     .exec(function(err, auth) {
-                                        if(auth & !auth.accessTokens.length && !auth.refreshTokens.length) {
+                                        if(auth && !auth.accessTokens.length && !auth.refreshTokens.length) {
                                             auth.destroy();
                                         }
                                     });
@@ -950,11 +954,11 @@ OpenIDConnect.prototype.token = function() {
                             if(prev.auth.nonce) {
                               id_token.nonce = prev.auth.nonce;
                             }
-                            console.log('--> Create access model, jwt key is '+prev.client.secret);
                             var p = {};
                             p.azp = id_token.azp;
                             var hbuf = crypto.createHmac('sha256', prev.client.secret).update(access).digest();
                             p.at_hash = base64url(hbuf.toString('ascii', 0, hbuf.length/2));
+                            //p.auth_time = prev.auth.createdAt;
                             if(id_token.nonce) p.nonce = id_token.nonce;
                             var opt = {};
                             opt.audience = id_token.aud;
@@ -1213,9 +1217,82 @@ OpenIDConnect.prototype.removetokens = function() {
             ];
 };
 
-OpenIDConnect.prototype.setKey = function(val) {
 
+OpenIDConnect.prototype.setKey = function(val) {
 };
+
+/*
+OpenIDConnect.prototype.cleanAllAuths = function() {
+    var self = this;
+
+    return [
+        function(req, res, next) {
+            self.endpointParams(spec, req, res, next);
+        },
+        self.use({policies: {loggedIn: false}, models: ['access','auth', 'refresh']}),
+        function(req, res, next) {
+            req.model.access.destroy({}, function(err, a) {
+              if(err) console.log('access destroy error: '+err);
+              else console.log('access destroyed!');
+            });
+            req.model.refresh.destroy({}, function(err, r) {
+              if(err) console.log('refresh destroy error: '+err);
+              else console.log('refresh destroyed!');
+            });
+            req.model.auth.destroy({}, function(err, a) {
+              if(err) console.log('auth destroy error: '+err);
+              else console.log('auth destroyed!');
+            });
+            return next();
+        }
+    ];
+};
+
+
+OpenIDConnect.prototype.showAllAuths = function() {
+    var self = this;
+
+    return [
+        function(req, res, next) {
+            self.endpointParams(spec, req, res, next);
+        },
+        self.use({policies: {loggedIn: false}, models: ['access','auth', 'refresh']}),
+        function(req, res, next) {
+            req.model.access.find({}, function(err, a) {
+              if(err) {
+                console.log('access get error: '+err);
+              }
+              else {
+                for(var i in a) {
+                  console.log('Access '+i+': '+JSON.stringify(a[i]));
+                }
+              }
+            });
+            req.model.refresh.find({}, function(err, a) {
+              if(err) {
+                console.log('refresh get error: '+err);
+              }
+              else {
+                for(var i in a) {
+                  console.log('Refresh '+i+': '+JSON.stringify(a[i]));
+                }
+              }
+            });
+            req.model.auth.find({}, function(err, a) {
+              if(err) {
+                console.log('auth get error: '+err);
+              }
+              else {
+                for(var i in a) {
+                  console.log('Auth '+i+': '+JSON.stringify(a[i]));
+                }
+              }
+            });
+            return next();
+        }
+    ];
+};
+*/
 
 exports.oidc = function(options) {
     return new OpenIDConnect(options);
