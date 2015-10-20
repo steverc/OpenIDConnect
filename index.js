@@ -309,15 +309,11 @@ OpenIDConnect.prototype.searchUser = function(parts, callback) {
 
 OpenIDConnect.prototype.errorHandle = function(req, res, uri, error, desc) {
     if(uri) {
-      /*
         var redirect = url.parse(uri,true);
         redirect.query.error = error; //'invalid_request';
         redirect.query.error_description = desc; //'Parameter '+x+' is mandatory.';
-        res.redirect(400, url.format(redirect));
-        */
-        var redirect = uri+'?error='+error+'&error_description='+desc;
-        if(req.param('state')) redirect += '&state='+req.param('state');
-        res.redirect(redirect);
+        if(req.param('state')) redirect.query.state = req.param('state');
+        res.redirect(url.format(redirect));
     } else {
         res.send(400, error+': '+desc);
     }
