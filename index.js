@@ -307,12 +307,17 @@ OpenIDConnect.prototype.searchUser = function(parts, callback) {
     return new this.orm.user.reverse(parts, callback);
 };*/
 
-OpenIDConnect.prototype.errorHandle = function(res, uri, error, desc) {
+OpenIDConnect.prototype.errorHandle = function(req, res, uri, error, desc) {
     if(uri) {
+      /*
         var redirect = url.parse(uri,true);
         redirect.query.error = error; //'invalid_request';
         redirect.query.error_description = desc; //'Parameter '+x+' is mandatory.';
         res.redirect(400, url.format(redirect));
+        */
+        var redirect = uri+'?error='+error+'&error_description='+desc;
+        if(req.param('state')) redirect += '&state='+req.param('state');
+        res.redirect(redirect);
     } else {
         res.send(400, error+': '+desc);
     }
@@ -323,7 +328,7 @@ OpenIDConnect.prototype.endpointParams = function (spec, req, res, next) {
         req.parsedParams = this.parseParams(req, res, next, spec);
         next();
     } catch(err) {
-        this.errorHandle(res, err.uri, err.error, err.msg);
+        this.errorHandle(req, res, err.uri, err.error, err.msg);
     }
 }
 
@@ -363,9 +368,9 @@ OpenIDConnect.prototype.parseParams = function(req, res, next, spec) {
             }
 
             if(error) {
-                next({type: 'error', uri: r, error: 'invalid_request', msg: 'Parameter '+i+' is mandatory.'});
-                //throw {type: 'error', uri: r, error: 'invalid_request', msg: 'Parameter '+i+' is mandatory.'};
-                //this.errorHandle(res, r, 'invalid_request', 'Parameter '+i+' is mandatory.');
+                //next({type: 'error', uri: r, error: 'invalid_request', msg: 'Parameter '+i+' is mandatory.'});
+                throw {type: 'error', uri: r, error: 'invalid_request', msg: 'Parameter '+i+' is mandatory'};
+                //this.errorHandle(req, res, r, 'invalid_request', 'Parameter '+i+' is mandatory.');
                 //return;
             }
         }
@@ -686,7 +691,7 @@ OpenIDConnect.prototype.auth = function() {
                 })
                 .fail(function(error) {
                     if(error.type == 'error') {
-                        self.errorHandle(res, error.uri, error.error, error.msg);
+                        self.errorHandle(req, res, error.uri, error.error, error.msg);
                     } else {
                         res.redirect(error.uri);
                     }
@@ -725,7 +730,7 @@ OpenIDConnect.prototype.consent = function() {
         } else {
             var returl = url.parse(return_url, true);
             var redirect_uri = returl.query.redirect_uri;
-            self.errorHandle(res, redirect_uri, 'access_denied', 'Resource Owner denied Access.');
+            self.errorHandle(req, res, redirect_uri, 'access_denied', 'Resource Owner denied Access.');
         }
     }];
 };
@@ -772,7 +777,7 @@ OpenIDConnect.prototype.token = function() {
                 }
             }
             if(!client_key || !client_secret) {
-                self.errorHandle(res, params.redirect_uri, 'invalid_client', 'No client credentials found.');
+                self.errorHandle(req, res, params.redirect_uri, 'invalid_client', 'No client credentials found.');
             } else {
 
                 Q.fcall(function() {
@@ -1018,7 +1023,7 @@ OpenIDConnect.prototype.token = function() {
                 })
                 .fail(function(error) {
                     if(error.type == 'error') {
-                        self.errorHandle(res, params.redirect_uri, error.error, error.msg);
+                        self.errorHandle(req, res, params.redirect_uri, error.error, error.msg);
                     } else {
                         res.redirect(error.uri);
                     }
@@ -1088,20 +1093,20 @@ OpenIDConnect.prototype.check = function() {
                                 });
                                 if(errors.length > 1) {
                                     var last = errors.pop();
-                                    self.errorHandle(res, null, 'invalid_scope', 'Required scopes '+errors.join(', ')+' and '+last+' where not granted.');
+                                    self.errorHandle(req, res, null, 'invalid_scope', 'Required scopes '+errors.join(', ')+' and '+last+' where not granted.');
                                 } else if(errors.length > 0) {
-                                    self.errorHandle(res, null, 'invalid_scope', 'Required scope '+errors.pop()+' not granted.');
+                                    self.errorHandle(req, res, null, 'invalid_scope', 'Required scope '+errors.pop()+' not granted.');
                                 } else {
                                     req.check = req.check||{};
                                     req.check.scopes = access.scope;
                                     next();
                                 }
                         } else {
-                            self.errorHandle(res, null, 'unauthorized_client', 'Access token is not valid.');
+                            self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
                         }
                     });
                 } else {
-                    self.errorHandle(res, null, 'unauthorized_client', 'No access token found.');
+                    self.errorHandle(req, res, null, 'unauthorized_client', 'No access token found.');
                 }
             }
         }
@@ -1145,7 +1150,7 @@ OpenIDConnect.prototype.userInfo = function() {
                             res.json(result);
                         });
                     } else {
-                        self.errorHandle(res, null, 'unauthorized_client', 'Access token is not valid.');
+                        self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
                     }
                 });
     }];
@@ -1207,11 +1212,11 @@ OpenIDConnect.prototype.removetokens = function() {
                                 });
                             });
                         } else {
-                            self.errorHandle(res, null, 'unauthorized_client', 'Access token is not valid.');
+                            self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
                         }
                     });
                 } else {
-                    self.errorHandle(res, null, 'unauthorized_client', 'No access token found.');
+                    self.errorHandle(req, res, null, 'unauthorized_client', 'No access token found.');
                 }
             }
             ];
