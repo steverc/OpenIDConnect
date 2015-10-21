@@ -109,6 +109,7 @@ var defaults = {
                     attributes: {
                         key: {type: 'string', required: true, unique: true},
                         secret: {type: 'string', required: true, unique: true},
+                        simmetricKey: {type: 'string', required: true},
                         name: {type: 'string', required: true},
                         image: 'binary',
                         user: {model: 'user'},
@@ -128,6 +129,14 @@ var defaults = {
                             sha256.update(values.name);
                             sha256.update(Math.random()+'');
                             values.secret = sha256.digest('hex');
+                        }
+                        if(!values.simmetricKey) {
+                            var sha256 = crypto.createHash('sha256');
+                            sha256.update(values.key);
+                            sha256.update(values.name);
+                            sha256.update(values.secret);
+                            sha256.update(Math.random()+'');
+                            values.simmetricKey = sha256.digest('hex');
                         }
                         next();
                     }
@@ -479,6 +488,7 @@ OpenIDConnect.prototype.auth = function() {
                         } else {
                             req.session.client_id = client.id;
                             req.session.client_secret = client.secret;
+                            req.session.client_simmetricKey = client.simmetricKey;
                             if(client.redirect_uris.indexOf(params.redirect_uri) === -1) {
                               deferred.reject({type: 'error', uri: null, error: 'invalid_uri', msg: 'Redirect uri is not valid'});
                             }
@@ -651,7 +661,7 @@ OpenIDConnect.prototype.auth = function() {
                                 resp = extend(resp, results[i].value||{});
                             }
                             if(resp.access_token && resp.id_token) {
-                                var hbuf = crypto.createHmac('sha256', req.session.client_secret).update(resp.access_token).digest();
+                                var hbuf = crypto.createHmac('sha256', req.session.client_simmetricKey).update(resp.access_token).digest();
                                 resp.id_token.at_hash = base64url(hbuf.toString('ascii', 0, hbuf.length/2));
                                 var p = {};
                                 p.azp = resp.id_token.azp;
@@ -664,7 +674,7 @@ OpenIDConnect.prototype.auth = function() {
                                 opt.expiresIn = 3600;
                                 opt.headers = self.settings.key?{kid: self.settings.key.kid}:{};
                                 //opt.algorithm = 'RS256';
-                                var key = self.settings.key?self.settings.key.val:req.session.client_secret;
+                                var key = self.settings.key?self.settings.key.val:req.session.client_simmetricKey;
                                 resp.id_token = jwt.sign(p, key, opt);
                             }
                             deferred.resolve({params: params, type: params.response_type != 'code'?'f':'q', resp: resp});
@@ -768,6 +778,7 @@ OpenIDConnect.prototype.token = function() {
 
             var client_key = req.body.client_id;
             var client_secret = req.body.client_secret;
+            var client_simmetricKey = req.body.client_simmetricKey;
 
             if(!client_key || !client_secret) {
                 var authorization = parse_authorization(req.headers.authorization);
@@ -961,7 +972,7 @@ OpenIDConnect.prototype.token = function() {
                             }
                             var p = {};
                             p.azp = id_token.azp;
-                            var hbuf = crypto.createHmac('sha256', prev.client.secret).update(access).digest();
+                            var hbuf = crypto.createHmac('sha256', prev.client.simmetricKey).update(access).digest();
                             p.at_hash = base64url(hbuf.toString('ascii', 0, hbuf.length/2));
                             //p.auth_time = prev.auth.createdAt;
                             if(id_token.nonce) p.nonce = id_token.nonce;
@@ -972,7 +983,7 @@ OpenIDConnect.prototype.token = function() {
                             opt.expiresIn = 3600;
                             opt.headers = self.settings.key?{kid: self.settings.key.kid}:{};
                             //opt.algorithm = 'RS256';
-                            var key = self.settings.key?self.settings.key.val:prev.client.secret;
+                            var key = self.settings.key?self.settings.key.val:prev.client.simmetricKey;
                             req.model.access.create({
                                     token: access,
                                     type: 'Bearer',
