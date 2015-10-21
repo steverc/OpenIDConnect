@@ -29,12 +29,30 @@ var defaults = {
         iss: null,
         key: null,
         scopes: {
-            openid: 'Informs the Authorization Server that the Client is making an OpenID Connect request.',
-            profile:'Access to the End-User\'s default profile Claims.',
-            email: 'Access to the email and email_verified Claims.',
-            address: 'Access to the address Claim.',
-            phone: 'Access to the phone_number and phone_number_verified Claims.',
-            offline_access: 'Grants access to the End-User\'s UserInfo Endpoint even when the End-User is not present (not logged in).'
+            openid: {
+              info: 'Informs the Authorization Server that the Client is making an OpenID Connect request.',
+              claims: null
+            },
+            profile:{
+              info: 'Access to the End-User\'s default profile Claims.',
+              claims: ['name', 'family_name', 'given_name', 'middle_name', 'nickname', 'preferred_username', 'profile', 'picture', 'website', 'gender', 'birthdate', 'zoneinfo', 'locale', 'updated_at']
+            },
+            email: {
+              info: 'Access to the email and email_verified Claims.',
+              claims: ['email', 'email_verified']
+            },
+            address: {
+              info: 'Access to the address Claim.',
+              claims: ['address']
+            },
+            phone: {
+              info: 'Access to the phone_number and phone_number_verified Claims.',
+              claims: ['phone_number', 'phone_number_verified']
+            },
+            offline_access: {
+              info: 'Grants access to the End-User\'s UserInfo Endpoint even when the End-User is not present (not logged in).',
+              claims: null
+            }
         },
         policies:{
             loggedIn: function(req, res, next) {
@@ -517,12 +535,12 @@ OpenIDConnect.prototype.auth = function() {
                                 if(!self.settings.scopes[scope]) {
                                     innerDef.reject({type: 'error', uri: params.redirect_uri, error: 'invalid_scope', msg: 'Scope '+scope+' not supported'});
                                 }
-                                if(!consent) {
-                                    req.session.scopes[scope] = {ismember: false, explain: self.settings.scopes[scope]};
+                                else if(!consent) {
+                                    req.session.scopes[scope] = {ismember: false, explain: self.settings.scopes[scope].info};
                                     innerDef.resolve(true);
                                 } else {
                                     var inScope = consent.scopes.indexOf(scope) !== -1;
-                                    req.session.scopes[scope] = {ismember: inScope, explain: self.settings.scopes[scope]};
+                                    req.session.scopes[scope] = {ismember: inScope, explain: self.settings.scopes[scope].info};
                                     innerDef.resolve(!inScope);
                                 }
                                 promises.push(innerDef.promise);
@@ -537,9 +555,14 @@ OpenIDConnect.prototype.auth = function() {
                                         if(params.state) redirect += '&state='+params.state;
                                         break;
                                     }
+                                    else if(results[i].value) {
+                                        var q = req.path+'?'+querystring.stringify(params);
+                                        redirect = self.settings.consent_url+'?'+querystring.stringify({return_url: q});
+                                        break;
+                                    }
                                 }
                                 if(redirect) {
-                                    //req.session.client_key = params.client_id;
+                                    req.session.client_key = params.client_id;
                                     deferred.reject({type: 'redirect', uri: redirect});
                                 } else {
                                     deferred.resolve(params);
