@@ -364,7 +364,6 @@ OpenIDConnect.prototype.parseParams = function(req, res, next, spec) {
             }
 
             if(error) {
-                //next({type: 'error', uri: r, error: 'invalid_request', msg: 'Parameter '+i+' is mandatory.'});
                 throw {type: 'error', uri: r, error: 'invalid_request', msg: 'Parameter '+i+' is mandatory'};
                 //this.errorHandle(req, res, r, 'invalid_request', 'Parameter '+i+' is mandatory.');
                 //return;
@@ -456,7 +455,7 @@ OpenIDConnect.prototype.auth = function() {
             self.use(['client', 'consent', 'auth', 'access']),
             function(req, res, next) {
                 Q(req.parsedParams).then(function(params) {
-                    //Step 2: Check if response_type is supported and client_id is valid.
+                    //Step 2: Check if response_type is supported, client_id is valid and redirect_uri is registered
 
                     var deferred = Q.defer();
                     switch(params.response_type) {
@@ -474,13 +473,18 @@ OpenIDConnect.prototype.auth = function() {
                             }
                         });
                     }
-                    req.model.client.findOne({key: params.client_id}, function(err, model) {
-                        if(err || !model || model === '') {
+                    req.model.client.findOne({key: params.client_id}, function(err, client) {
+                        if(err || !client || client === '') {
                             deferred.reject({type: 'error', uri: params.redirect_uri, error: 'invalid_client', msg: 'Client '+params.client_id+' doesn\'t exist.'});
                         } else {
-                            req.session.client_id = model.id;
-                            req.session.client_secret = model.secret;
-                            deferred.resolve(params);
+                            req.session.client_id = client.id;
+                            req.session.client_secret = client.secret;
+                            if(client.redirect_uris.indexOf(params.redirect_uri) === -1) {
+                              deferred.reject({type: 'error', uri: null, error: 'invalid_uri', msg: 'Redirect uri is not valid'});
+                            }
+                            else {
+                              deferred.resolve(params);
+                            }
                         }
                     });
 
