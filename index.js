@@ -1159,7 +1159,7 @@ OpenIDConnect.prototype.check = function() {
 OpenIDConnect.prototype.userInfo = function() {
     var self = this;
     return [
-            self.check('openid', /profile|email|phone/),
+            self.check('openid'),
             self.use({policies: {loggedIn: false}, models: ['access', 'user']}),
             function(req, res, next) {
                 req.model.access.findOne({token: req.parsedParams.access_token})
@@ -1169,18 +1169,13 @@ OpenIDConnect.prototype.userInfo = function() {
                             var result = {
                               sub: user.sub
                             };
-                            if(req.check.scopes.indexOf('profile') != -1) {
-                              result.given_name = user.given_name;
-                              result.middle_name = user.middle_name;
-                              result.family_name = user.family_name;
-                              result.name = user.name;
-                            }
-                            if(req.check.scopes.indexOf('email') != -1) {
-                              result.email = user.email;
-                            }
-                            if(req.check.scopes.indexOf('phone') != -1) {
-                              result.phone_number = user.phone_number;
-                            }
+                            req.check.scopes.forEach(function(s) {
+                              if(self.settings.scopes[s]['claims']) {
+                                self.settings.scopes[s]['claims'].forEach(function(c) {
+                                  if(user[c]) result[c] = user[c];
+                                });
+                              }
+                            });
                             res.json(result);
                         });
                     } else {
