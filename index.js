@@ -342,7 +342,10 @@ OpenIDConnect.prototype.errorHandle = function(req, res, uri, error, desc) {
         if(req.param('state')) redirect.query.state = req.param('state');
         res.redirect(url.format(redirect));
     } else {
-        res.send(400, error+': '+desc);
+        res.status(400).json({
+          error: error,
+          error_description: desc
+        });
     }
 };
 
@@ -811,7 +814,7 @@ OpenIDConnect.prototype.token = function() {
                 }
             }
             if(!client_key || !client_secret) {
-                self.errorHandle(req, res, params.redirect_uri, 'invalid_client', 'No client credentials found.');
+                self.errorHandle(req, res, null, 'invalid_client', 'No client credentials found.');
             } else {
 
                 Q.fcall(function() {
@@ -1057,7 +1060,7 @@ OpenIDConnect.prototype.token = function() {
                 })
                 .fail(function(error) {
                     if(error.type == 'error') {
-                        self.errorHandle(req, res, params.redirect_uri, error.error, error.msg);
+                        self.errorHandle(req, res, null, error.error, error.msg);
                     } else {
                         res.redirect(error.uri);
                     }
