@@ -339,7 +339,7 @@ OpenIDConnect.prototype.errorHandle = function(req, res, uri, error, desc) {
         var redirect = url.parse(uri,true);
         redirect.query.error = error; //'invalid_request';
         redirect.query.error_description = desc; //'Parameter '+x+' is mandatory.';
-        if(req.param('state')) redirect.query.state = req.param('state');
+        //if(req.param('state')) redirect.query.state = req.param('state');
         res.redirect(url.format(redirect));
     } else {
         res.status(400).json({
