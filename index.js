@@ -550,23 +550,25 @@ OpenIDConnect.prototype.auth = function() {
                             });
 
                             Q.allSettled(promises).then(function(results){
-                                var redirect = null;
+                                var pError = {};
                                 for(var i = 0; i<results.length; i++) {
                                     if(results[i].state !== 'fulfilled') {
-                                        redirect = results[i].reason.uri+'?error='+results[i].reason.error;
-                                        redirect += '&error_description='+encodeURIComponent(results[i].reason.msg);
-                                        if(params.state) redirect += '&state='+params.state;
-                                        break;
-                                    }
-                                    else if(results[i].value) {
-                                        var q = req.path+'?'+querystring.stringify(params);
-                                        redirect = self.settings.consent_url+'?'+querystring.stringify({return_url: q});
+                                        pError = results[i].reason;
                                         break;
                                     }
                                 }
-                                if(redirect) {
-                                    req.session.client_key = params.client_id;
-                                    deferred.reject({type: 'redirect', uri: redirect});
+                                if(!pError.type) {
+                                  for(var i = 0; i<results.length; i++) {
+                                    if(results[i].value) {
+                                      var q = req.path+'?'+querystring.stringify(params);
+                                      pError.type = 'redirect';
+                                      pError.uri = self.settings.consent_url+'?'+querystring.stringify({return_url: q});
+                                      break;
+                                    }
+                                  }
+                                }
+                                if(pError.type) {
+                                    deferred.reject(pError);
                                 } else {
                                     deferred.resolve(params);
                                 }
