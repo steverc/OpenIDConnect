@@ -1043,6 +1043,8 @@ OpenIDConnect.prototype.token = function() {
                                         }
                                     }, 1000*3600); //1 hour
 
+                                    res.append('Cache-Control', 'no-store');
+                                    res.append('Pragma', 'no-cache');
                                     res.json({
                                         access_token: access.token,
                                         token_type: access.type,
