@@ -360,9 +360,9 @@ OpenIDConnect.prototype.endpointParams = function (spec, req, res, next) {
 
 OpenIDConnect.prototype.parseParams = function(req, res, next, spec) {
     var params = {};
-    var r = req.param('redirect_uri');
+    var r = req.params.redirect_uri;
     for(var i in spec) {
-        var x = req.param(i);
+        var x = req.params[i];
         if(x) {
             params[i] = x;
         }
@@ -752,8 +752,8 @@ OpenIDConnect.prototype.consent = function() {
     var self = this;
     return [self.use('consent'),
     function(req, res, next) {
-        var accept = req.param('accept');
-        var return_url = req.param('return_url');
+        var accept = req.params.accept;
+        var return_url = req.params.return_url;
         //var client_id = req.query.client_id || req.body.client_id || false;
         if(accept) {
             var scopes = [];
