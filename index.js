@@ -26,6 +26,7 @@ cleanObj = require('clean-obj');
 var defaults = {
         login_url: '/login',
         consent_url: '/consent',
+        error_url: '/error',
         iss: null,
         key: null,
         scopes: {
@@ -342,10 +343,10 @@ OpenIDConnect.prototype.errorHandle = function(req, res, uri, error, desc) {
         //if(req.param('state')) redirect.query.state = req.param('state');
         res.redirect(url.format(redirect));
     } else {
-        res.status(400).json({
+        res.redirect(this.settings.error_url+'?'+querystring.stringify({
           error: error,
           error_description: desc
-        });
+        }));
     }
 };
 
