@@ -27,6 +27,7 @@ var defaults = {
         login_url: '/login',
         consent_url: '/consent',
         error_url: '/error',
+        logger: null,
         iss: null,
         key: null,
         scopes: {
@@ -240,6 +241,12 @@ function parse_authorization(authorization) {
 
     return [username, password];
 }
+
+
+function log(self, s) {
+  if(self.settings.logger) self.settings.logger('OIDC module - '+s);
+}
+
 
 function OpenIDConnect(options) {
     this.settings = extend(true, {}, defaults, options);
@@ -725,6 +732,7 @@ OpenIDConnect.prototype.auth = function() {
                         } else {
                             uri.query = resp;
                         }
+                        log(self, 'Auth response is '+JSON.stringify(uri));
                         res.redirect(url.format(uri));
                     }
                 })
@@ -1044,6 +1052,9 @@ OpenIDConnect.prototype.token = function() {
                                         }
                                     }, 1000*3600); //1 hour
 
+                                    log(self, 'Id token is '+access.idToken);
+                                    log(self, 'Access token is '+access.token);
+                                    log(self, 'Refresh token is '+refresh.token);
                                     res.append('Cache-Control', 'no-store');
                                     res.append('Pragma', 'no-cache');
                                     res.json({
@@ -1184,6 +1195,7 @@ OpenIDConnect.prototype.userInfo = function() {
                                 });
                               }
                             });
+                            log(self, 'userInfo returns '+JSON.stringify(result));
                             res.json(result);
                         });
                     } else {
