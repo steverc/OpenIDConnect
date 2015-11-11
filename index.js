@@ -947,7 +947,7 @@ OpenIDConnect.prototype.token = function() {
                         return deferred.promise;
                         break;
                     default:
-                        throw {type: 'error', error: 'invalid_grant', msg: 'Invalid grant value'};
+                        throw {type: 'error', error: 'unsupported_grant_type', msg: 'Invalid grant type value'};
                     }
 
                 })
