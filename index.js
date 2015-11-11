@@ -1077,6 +1077,8 @@ OpenIDConnect.prototype.token = function() {
                     });
                 })
                 .fail(function(error) {
+                    res.append('Cache-Control', 'no-store');
+                    res.append('Pragma', 'no-cache');
                     res.status(400).json({error: error.error, error_description: error.msg});
                 });
             }
