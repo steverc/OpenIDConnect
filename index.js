@@ -946,6 +946,8 @@ OpenIDConnect.prototype.token = function() {
                         }
                         return deferred.promise;
                         break;
+                    default:
+                        throw {type: 'error', error: 'invalid_grant', msg: 'Invalid grant value'};
                     }
 
                 })
@@ -1075,11 +1077,7 @@ OpenIDConnect.prototype.token = function() {
                     });
                 })
                 .fail(function(error) {
-                    if(error.type == 'error') {
-                        self.errorHandle(req, res, null, error.error, error.msg);
-                    } else {
-                        res.redirect(error.uri);
-                    }
+                    res.status(400).json({error: error.error, error_description: error.msg});
                 });
             }
     }];
