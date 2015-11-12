@@ -532,6 +532,9 @@ OpenIDConnect.prototype.auth = function() {
                     //Step 3: Check if scopes are valid, and if consent was given.
 
                     var deferred = Q.defer();
+                    if(typeof params.scope !== 'string') {
+                      throw {type: 'error', uri: params.redirect_uri, error: 'invalid_scope', msg: 'Malformed scope definition'};
+                    }
                     var reqsco = params.scope.split(' ');
                     req.session.scopes = {};
                     var promises = [];
