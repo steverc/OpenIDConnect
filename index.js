@@ -345,6 +345,7 @@ OpenIDConnect.prototype.searchUser = function(parts, callback) {
 OpenIDConnect.prototype.errorHandle = function(req, res, uri, error, desc) {
     if(uri) {
         var redirect = url.parse(uri,true);
+        if(redirect.search) delete redirect.search;
         redirect.query.error = error; //'invalid_request';
         redirect.query.error_description = desc; //'Parameter '+x+' is mandatory.';
         //if(req.param('state')) redirect.query.state = req.param('state');
@@ -726,6 +727,7 @@ OpenIDConnect.prototype.auth = function() {
                     var params = obj.params;
                     var resp = obj.resp;
                     var uri = url.parse(params.redirect_uri, true);
+                    if(uri.search) delete uri.search;
                     if(params.state) {
                         resp.state = params.state;
                     }
@@ -733,7 +735,7 @@ OpenIDConnect.prototype.auth = function() {
                         if(obj.type == 'f') {
                             uri.hash = querystring.stringify(resp);
                         } else {
-                            uri.query = resp;
+                            uri.query = extend(uri.query, resp);
                         }
                         log(self, 'Auth response is '+JSON.stringify(uri));
                         res.redirect(url.format(uri));
