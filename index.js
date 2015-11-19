@@ -349,7 +349,7 @@ OpenIDConnect.prototype.errorHandle = function(req, res, uri, error, desc) {
         redirect.query.error = error; //'invalid_request';
         redirect.query.error_description = desc; //'Parameter '+x+' is mandatory.';
         //if(req.param('state')) redirect.query.state = req.param('state');
-        res.redirect(url.format(redirect));
+        res.status(400).redirect(url.format(redirect));
     } else {
         res.redirect(this.settings.error_url+'?'+querystring.stringify({
           error: error,
@@ -745,7 +745,7 @@ OpenIDConnect.prototype.auth = function() {
                     if(error.type == 'error') {
                         self.errorHandle(req, res, error.uri, error.error, error.msg);
                     } else {
-                        res.redirect(error.uri);
+                        res.status(400).redirect(error.uri);
                     }
                 });
             }
