@@ -648,7 +648,7 @@ OpenIDConnect.prototype.auth = function() {
                                 def.resolve({id_token: {
                                         iss: self.settings.iss||req.protocol+'://'+req.headers.host,
                                         sub: req.session.sub||req.session.user,
-                                        aud: params.client_id,
+                                        aud: new Array(params.client_id),
                                         exp: d+3600,
                                         iat: d,
                                         nonce: params.nonce,
@@ -1006,7 +1006,7 @@ OpenIDConnect.prototype.token = function() {
                             var id_token = {
                                     iss: self.settings.iss||req.protocol+'://'+req.headers.host,
                                     sub: prev.sub||prev.user||null,
-                                    aud: prev.client.key,
+                                    aud: new Array(prev.client.key),
                                     exp: d+3600,
                                     iat: d,
                                     azp: prev.client.key
