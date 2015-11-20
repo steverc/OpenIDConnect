@@ -1199,6 +1199,7 @@ OpenIDConnect.prototype.userInfo = function() {
                                   if(user[c]) result[c] = user[c];
                                 });
                               }
+                              if(s=='profile') result['updated_at'] = Math.round(user['updatedAt'].getTime()/1000);
                             });
                             log(self, 'userInfo returns '+JSON.stringify(result));
                             res.json(result);
