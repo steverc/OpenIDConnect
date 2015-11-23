@@ -61,7 +61,11 @@ var defaults = {
                 if(req.session.user) {
                     next();
                 } else {
-                    var q = req.parsedParams?req.path+'?'+querystring.stringify(req.parsedParams):req.originalUrl;
+                    var q = req.originalUrl;
+                    if(req.parsedParams) {
+                      q = req.path+'?'+querystring.stringify(req.parsedParams);
+                      req.session.acr_values = req.parsedParams.acr_values;
+                    }
                     res.redirect(this.settings.login_url+'?'+querystring.stringify({return_url: q}));
                 }
             },
