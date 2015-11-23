@@ -1209,7 +1209,8 @@ OpenIDConnect.prototype.userInfo = function() {
                             res.json(result);
                         });
                     } else {
-                        self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
+                        //self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
+                        res.status(401).send();
                     }
                 });
     }];
