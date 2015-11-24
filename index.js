@@ -1155,20 +1155,24 @@ OpenIDConnect.prototype.check = function() {
                                 });
                                 if(errors.length > 1) {
                                     var last = errors.pop();
-                                    self.errorHandle(req, res, null, 'invalid_scope', 'Required scopes '+errors.join(', ')+' and '+last+' where not granted.');
+                                    //self.errorHandle(req, res, null, 'invalid_scope', 'Required scopes '+errors.join(', ')+' and '+last+' where not granted.');
+                                    res.status(401).send();
                                 } else if(errors.length > 0) {
-                                    self.errorHandle(req, res, null, 'invalid_scope', 'Required scope '+errors.pop()+' not granted.');
+                                    //self.errorHandle(req, res, null, 'invalid_scope', 'Required scope '+errors.pop()+' not granted.');
+                                    res.status(401).send();
                                 } else {
                                     req.check = req.check||{};
                                     req.check.scopes = access.scope;
                                     next();
                                 }
                         } else {
-                            self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
+                            //self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
+                            res.status(401).send();
                         }
                     });
                 } else {
-                    self.errorHandle(req, res, null, 'unauthorized_client', 'No access token found.');
+                    //self.errorHandle(req, res, null, 'unauthorized_client', 'No access token found.');
+                    res.status(401).send();
                 }
             }
         }
