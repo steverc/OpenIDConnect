@@ -626,6 +626,7 @@ OpenIDConnect.prototype.auth = function() {
                                         code: token,
                                         nonce: params.nonce,
                                         acr: req.session.acr,
+                                        amr: req.session.amr,
                                         redirectUri: params.redirect_uri,
                                         responseType: params.response_type,
                                         status: 'created'
@@ -1020,6 +1021,7 @@ OpenIDConnect.prototype.token = function() {
                               id_token.nonce = prev.auth.nonce;
                             }
                             if(prev.auth.acr) id_token.acr = prev.auth.acr;
+                            if(prev.auth.amr) id_token.amr = prev.auth.amr;
                             var p = {};
                             p.azp = id_token.azp;
                             var hbuf = crypto.createHmac('sha256', prev.client.simmetricKey).update(access).digest();
@@ -1027,6 +1029,7 @@ OpenIDConnect.prototype.token = function() {
                             //p.auth_time = prev.auth.createdAt;
                             if(id_token.nonce) p.nonce = id_token.nonce;
                             if(id_token.acr) p.acr = id_token.acr;
+                            if(id_token.amr) p.amr = id_token.amr;
                             var opt = {};
                             opt.audience = id_token.aud;
                             opt.subject = id_token.sub;
