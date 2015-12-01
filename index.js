@@ -18,7 +18,7 @@ extend = require('extend'),
 url = require('url'),
 Q = require('q'),
 jwt = require('jsonwebtoken'),
-util = require("util"),
+util = require('util'),
 base64url = require('base64url'),
 cleanObj = require('clean-obj');
 
@@ -105,7 +105,7 @@ var defaults = {
                     beforeCreate: function(values, next) {
                         if(values.password) {
                             if(values.password != values.passConfirm) {
-                                return next("Password and confirmation does not match");
+                                return next('Password and confirmation does not match');
                             }
                             var sha256 = crypto.createHash('sha256');
                             sha256.update(values.password);
@@ -116,7 +116,7 @@ var defaults = {
                     beforeUpdate: function(values, next) {
                         if(values.password) {
                             if(values.password != values.passConfirm) {
-                                return next("Password and confirmation does not match");
+                                return next('Password and confirmation does not match');
                             }
                             var sha256 = crypto.createHash('sha256');
                             sha256.update(values.password);
@@ -249,6 +249,11 @@ function parse_authorization(authorization) {
 
 function log(self, s) {
   if(self.settings.logger) self.settings.logger('OIDC module - '+s);
+}
+
+
+function logError(self, s) {
+  if(self.settings.errorLogger) self.settings.errorLogger('OIDC module - '+s);
 }
 
 
@@ -497,7 +502,7 @@ OpenIDConnect.prototype.auth = function() {
             },
             self.use(['client', 'consent', 'auth', 'access']),
             function(req, res, next) {
-                log(self, "Auth EP - params are "+JSON.stringify(req.parsedParams));
+                log(self, 'Auth EP - params are '+JSON.stringify(req.parsedParams));
                 Q(req.parsedParams).then(function(params) {
                     //Step 2: Check if response_type is supported, client_id is valid and redirect_uri is registered
 
@@ -750,6 +755,7 @@ OpenIDConnect.prototype.auth = function() {
                     }
                 })
                 .fail(function(error) {
+                    logError(self, 'Auth EP - '+JSON.stringify(error));
                     if(error.type == 'error') {
                         self.errorHandle(req, res, error.uri, error.error, error.msg);
                     } else {
@@ -790,6 +796,7 @@ OpenIDConnect.prototype.consent = function() {
         } else {
             var returl = url.parse(return_url, true);
             var redirect_uri = returl.query.redirect_uri;
+            logError(self, 'Consent - access denied');
             self.errorHandle(req, res, redirect_uri, 'access_denied', 'Resource Owner denied Access.');
         }
     }];
@@ -824,7 +831,7 @@ OpenIDConnect.prototype.token = function() {
         self.use({policies: {loggedIn: false}, models:['client', 'consent', 'auth', 'access', 'refresh']}),
 
         function(req, res, next) {
-            log(self, "Token EP - params are "+JSON.stringify(req.parsedParams));
+            log(self, 'Token EP - params are '+JSON.stringify(req.parsedParams));
             var params = req.parsedParams;
 
             var client_key = req.body.client_id;
@@ -860,7 +867,7 @@ OpenIDConnect.prototype.token = function() {
 
                     switch(params.grant_type) {
                     //Client is trying to exchange an authorization code for an access token
-                    case "authorization_code":
+                    case 'authorization_code':
                         //Step 3: check if code is valid and not used previously
                         req.model.auth.findOne({code: params.code})
                         .populate('accessTokens')
@@ -905,7 +912,7 @@ OpenIDConnect.prototype.token = function() {
                         break;
 
                         //Client is trying to exchange a refresh token for an access token
-                    case "refresh_token":
+                    case 'refresh_token':
 
                         //Step 3: check if refresh token is valid and not used previously
                         req.model.refresh.findOne({token: params.refresh_token}, function(err, refresh) {
@@ -1097,6 +1104,7 @@ OpenIDConnect.prototype.token = function() {
                     });
                 })
                 .fail(function(error) {
+                    logError(self, 'Token EP - '+JSON.stringify(error));
                     res.append('Cache-Control', 'no-store');
                     res.append('Pragma', 'no-cache');
                     res.status(400).json({error: error.error, error_description: error.msg});
@@ -1167,8 +1175,10 @@ OpenIDConnect.prototype.check = function() {
                                 if(errors.length > 1) {
                                     var last = errors.pop();
                                     //self.errorHandle(req, res, null, 'invalid_scope', 'Required scopes '+errors.join(', ')+' and '+last+' where not granted.');
+                                    logError(self, 'Check - required scopes '+errors.join()+' where not granted');
                                     res.status(401).send();
                                 } else if(errors.length > 0) {
+                                    logError(self, 'Check - required scope '+errors.pop()+' where not granted');
                                     //self.errorHandle(req, res, null, 'invalid_scope', 'Required scope '+errors.pop()+' not granted.');
                                     res.status(401).send();
                                 } else {
@@ -1177,11 +1187,13 @@ OpenIDConnect.prototype.check = function() {
                                     next();
                                 }
                         } else {
+                            logError(self, 'Check - unauthorized client: access token not valid');
                             //self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
                             res.status(401).send();
                         }
                     });
                 } else {
+                    logError(self, 'Check - unauthorized client: no access token found in request');
                     //self.errorHandle(req, res, null, 'unauthorized_client', 'No access token found.');
                     res.status(401).send();
                 }
@@ -1205,7 +1217,7 @@ OpenIDConnect.prototype.userInfo = function() {
             self.check('openid'),
             self.use({policies: {loggedIn: false}, models: ['access', 'user']}),
             function(req, res, next) {
-                log(self, "User Info EP - params are "+JSON.stringify(req.parsedParams));
+                //log(self, 'User Info EP - params are '+JSON.stringify(req.parsedParams));
                 req.model.access.findOne({token: req.parsedParams.access_token})
                 .exec(function(err, access) {
                     if(!err && access) {
@@ -1226,6 +1238,8 @@ OpenIDConnect.prototype.userInfo = function() {
                         });
                     } else {
                         //self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
+                        if(err) logError(self, 'User Info EP - '+JSON.stringify(err));
+                        else logError(self, 'User Info EP - access not found');
                         res.status(401).send();
                     }
                 });
