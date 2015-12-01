@@ -497,6 +497,7 @@ OpenIDConnect.prototype.auth = function() {
             },
             self.use(['client', 'consent', 'auth', 'access']),
             function(req, res, next) {
+                log(self, "Auth EP - params are "+JSON.stringify(req.parsedParams));
                 Q(req.parsedParams).then(function(params) {
                     //Step 2: Check if response_type is supported, client_id is valid and redirect_uri is registered
 
@@ -823,6 +824,7 @@ OpenIDConnect.prototype.token = function() {
         self.use({policies: {loggedIn: false}, models:['client', 'consent', 'auth', 'access', 'refresh']}),
 
         function(req, res, next) {
+            log(self, "Token EP - params are "+JSON.stringify(req.parsedParams));
             var params = req.parsedParams;
 
             var client_key = req.body.client_id;
@@ -1203,6 +1205,7 @@ OpenIDConnect.prototype.userInfo = function() {
             self.check('openid'),
             self.use({policies: {loggedIn: false}, models: ['access', 'user']}),
             function(req, res, next) {
+                log(self, "User Info EP - params are "+JSON.stringify(req.parsedParams));
                 req.model.access.findOne({token: req.parsedParams.access_token})
                 .exec(function(err, access) {
                     if(!err && access) {
