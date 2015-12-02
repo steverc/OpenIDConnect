@@ -1172,7 +1172,7 @@ OpenIDConnect.prototype.check = function() {
                                     !inS && errors.push('('+scope.toString().replace(/\//g,'')+')');
                                 }
                             });
-                            if(errors.length = 0) {
+                            if(errors.length == 0) {
                                 req.check.scopes = access.scope;
                             }
                         }
