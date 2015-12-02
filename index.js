@@ -846,7 +846,13 @@ OpenIDConnect.prototype.token = function() {
                 }
             }
             if(!client_key || !client_secret) {
-                self.errorHandle(req, res, null, 'invalid_client', 'No client credentials found.');
+                var error = {};
+                error.error = 'invalid_client';
+                error.msg = 'No client credentials found';
+                logError(self, 'Token EP - '+JSON.stringify(error));
+                res.append('Cache-Control', 'no-store');
+                res.append('Pragma', 'no-cache');
+                res.status(400).json({error: error.error, error_description: error.msg});
             } else {
 
                 Q.fcall(function() {
