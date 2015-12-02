@@ -1212,6 +1212,12 @@ OpenIDConnect.prototype.userInfo = function() {
             self.use({policies: {loggedIn: false}, models: ['access', 'user']}),
             function(req, res, next) {
                 //log(self, 'User Info EP - params are '+JSON.stringify(req.parsedParams));
+                if(!req.parsedParams.access_token) {
+                  logError(self, 'User Info EP - missing access token');
+                  res.append('WWW-Authenticate', 'error="invalid_request", error_description="Access token is not specified"');
+                  res.status(401).send();
+                  return;
+                }
                 req.model.access.findOne({token: req.parsedParams.access_token})
                 .exec(function(err, access) {
                     if(!err && access) {
@@ -1234,6 +1240,7 @@ OpenIDConnect.prototype.userInfo = function() {
                         //self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
                         if(err) logError(self, 'User Info EP - '+JSON.stringify(err));
                         else logError(self, 'User Info EP - access token not found');
+                        res.append('WWW-Authenticate', 'error="invalid_token", error_description="Access token is not valid"');
                         res.status(401).send();
                     }
                 });
