@@ -816,7 +816,7 @@ OpenIDConnect.prototype.consent = function() {
 OpenIDConnect.prototype.token = function() {
     var self = this;
     var spec = {
-            grant_type: true,
+            grant_type: false,
             code: false,
             redirect_uri: false,
             refresh_token: false,
