@@ -378,7 +378,7 @@ OpenIDConnect.prototype.endpointParams = function (spec, req, res, next) {
 
 OpenIDConnect.prototype.parseParams = function(req, res, next, spec) {
     var params = {};
-    var r = req.query.redirect_uri||req.body.redirect_uri;
+    var r = req.query.redirect_uri||req.body.redirect_uri||null;
     for(var i in spec) {
         var x = req.query[i]||req.body[i];
         if(x) {
@@ -1128,7 +1128,6 @@ OpenIDConnect.prototype.token = function() {
  * This function is used to check if user logged in, if an access_token is present, and if certain scopes where granted to it.
  */
 OpenIDConnect.prototype.check = function() {
-    //Seguir desde acá!!!!
     var scopes = Array.prototype.slice.call(arguments, 0);
     if(!util.isArray(scopes)) {
         scopes = [scopes];
@@ -1145,57 +1144,42 @@ OpenIDConnect.prototype.check = function() {
         self.use({policies: {loggedIn: false}, models:['access', 'auth']}),
         function(req, res, next) {
             var params = req.parsedParams;
+            req.check = req.check||{};
             if(!scopes.length) {
                 next();
             } else {
                 if(!params.access_token) {
-                    params.access_token = (req.headers['authorization'] || '').indexOf('Bearer ') === 0 ? req.headers['authorization'].replace('Bearer', '').trim() : false;
+                    if((req.headers['authorization'] || '').indexOf('Bearer ') === 0) params.access_token = req.headers['authorization'].replace('Bearer', '').trim();
                 }
                 if(params.access_token) {
                     req.model.access.findOne({token: params.access_token})
                     .exec(function(err, access) {
                         if(!err && access) {
-                                var errors = [];
+                            var errors = [];
 
-                                scopes.forEach(function(scope) {
-                                    if(typeof scope == 'string') {
-                                        if(access.scope.indexOf(scope) == -1) {
-                                            errors.push(scope);
-                                        }
-                                    } else if(util.isRegExp(scope)) {
-                                        var inS = false;
-                                        access.scope.forEach(function(s){
-                                            if(scope.test(s)) {
-                                                inS = true;
-                                            }
-                                        });
-                                        !inS && errors.push('('+scope.toString().replace(/\//g,'')+')');
+                            scopes.forEach(function(scope) {
+                                if(typeof scope == 'string') {
+                                    if(access.scope.indexOf(scope) == -1) {
+                                        errors.push(scope);
                                     }
-                                });
-                                if(errors.length > 1) {
-                                    var last = errors.pop();
-                                    //self.errorHandle(req, res, null, 'invalid_scope', 'Required scopes '+errors.join(', ')+' and '+last+' where not granted.');
-                                    logError(self, 'Check - required scopes '+errors.join()+' where not granted');
-                                    res.status(401).send();
-                                } else if(errors.length > 0) {
-                                    logError(self, 'Check - required scope '+errors.pop()+' where not granted');
-                                    //self.errorHandle(req, res, null, 'invalid_scope', 'Required scope '+errors.pop()+' not granted.');
-                                    res.status(401).send();
-                                } else {
-                                    req.check = req.check||{};
-                                    req.check.scopes = access.scope;
-                                    next();
+                                } else if(util.isRegExp(scope)) {
+                                    var inS = false;
+                                    access.scope.forEach(function(s){
+                                        if(scope.test(s)) {
+                                            inS = true;
+                                        }
+                                    });
+                                    !inS && errors.push('('+scope.toString().replace(/\//g,'')+')');
                                 }
-                        } else {
-                            logError(self, 'Check - unauthorized client: access token not valid');
-                            //self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
-                            res.status(401).send();
+                            });
+                            if(errors.length = 0) {
+                                req.check.scopes = access.scope;
+                            }
                         }
+                        next();
                     });
                 } else {
-                    logError(self, 'Check - unauthorized client: no access token found in request');
-                    //self.errorHandle(req, res, null, 'unauthorized_client', 'No access token found.');
-                    res.status(401).send();
+                    next();
                 }
             }
         }
@@ -1214,6 +1198,10 @@ OpenIDConnect.prototype.check = function() {
 OpenIDConnect.prototype.userInfo = function() {
     var self = this;
     return [
+            function(req, res, next) {
+                log(self, 'User Info EP - params are '+JSON.stringify(req.parsedParams));
+                next();
+            },
             self.check('openid'),
             self.use({policies: {loggedIn: false}, models: ['access', 'user']}),
             function(req, res, next) {
@@ -1239,7 +1227,7 @@ OpenIDConnect.prototype.userInfo = function() {
                     } else {
                         //self.errorHandle(req, res, null, 'unauthorized_client', 'Access token is not valid.');
                         if(err) logError(self, 'User Info EP - '+JSON.stringify(err));
-                        else logError(self, 'User Info EP - access not found');
+                        else logError(self, 'User Info EP - access token not found');
                         res.status(401).send();
                     }
                 });
