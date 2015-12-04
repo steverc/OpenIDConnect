@@ -65,6 +65,7 @@ var defaults = {
                     if(req.parsedParams) {
                       q = req.path+'?'+querystring.stringify(req.parsedParams);
                       req.session.acr_values = req.parsedParams.acr_values;
+                      req.session.client_id = req.parsedParams.client_id;
                     }
                     res.redirect(this.settings.login_url+'?'+querystring.stringify({return_url: q}));
                 }
