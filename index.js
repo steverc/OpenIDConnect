@@ -65,7 +65,7 @@ var defaults = {
                     if(req.parsedParams) {
                       q = req.path+'?'+querystring.stringify(req.parsedParams);
                       req.session.acr_values = req.parsedParams.acr_values;
-                      req.session.client_id = req.parsedParams.client_id;
+                      req.session.client_key = req.parsedParams.client_id;
                     }
                     res.redirect(this.settings.login_url+'?'+querystring.stringify({return_url: q}));
                 }
@@ -789,6 +789,7 @@ OpenIDConnect.prototype.consent = function() {
             for(var i in req.session.scopes) {
                 scopes.push(i);
             }
+            log(self, 'Creating consent for user '+req.session.user+' and client '+req.session.client_id);
             req.model.consent.destroy({user: req.session.user, client: req.session.client_id}, function(err, result) {
                 req.model.consent.create({user: req.session.user, client: req.session.client_id, scopes: scopes}, function(err, consent) {
                     res.redirect(return_url);
@@ -1042,6 +1043,8 @@ OpenIDConnect.prototype.token = function() {
                             if(prev.auth.auth_time) id_token.auth_time = Math.floor(new Date(prev.auth.auth_time).getTime()/1000);
                             var p = {};
                             p.azp = id_token.azp;
+                            //console.log('--->>> AT_HASH - access is '+access);
+                            //console.log('--->>> AT_HASH - key is '+prev.client.simmetricKey);
                             var hbuf = crypto.createHmac('sha256', prev.client.simmetricKey).update(access).digest();
                             //p.at_hash = base64url(hbuf.toString('ascii', 0, hbuf.length/2));
                             //p.auth_time = prev.auth.createdAt;
