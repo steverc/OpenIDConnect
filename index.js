@@ -715,11 +715,11 @@ OpenIDConnect.prototype.auth = function() {
                                 resp = extend(resp, results[i].value||{});
                             }
                             if(resp.access_token && resp.id_token) {
-                                var hbuf = crypto.createHmac('sha256', req.session.client_simmetricKey).update(resp.access_token).digest();
-                                resp.id_token.at_hash = base64url(hbuf.toString('ascii', 0, hbuf.length/2));
+                                var hbuf = crypto.createHash('sha256').update(resp.access_token).digest();
+                                resp.id_token.at_hash = base64url(hbuf.slice(0, hbuf.length/2));
                                 var p = {};
                                 p.azp = resp.id_token.azp;
-                                //p.at_hash = resp.id_token.at_hash;
+                                p.at_hash = resp.id_token.at_hash;
                                 if(resp.id_token.nonce) p.nonce = resp.id_token.nonce;
                                 var opt = {};
                                 opt.audience = resp.id_token.aud;
@@ -1043,10 +1043,8 @@ OpenIDConnect.prototype.token = function() {
                             if(prev.auth.auth_time) id_token.auth_time = Math.floor(new Date(prev.auth.auth_time).getTime()/1000);
                             var p = {};
                             p.azp = id_token.azp;
-                            //console.log('--->>> AT_HASH - access is '+access);
-                            //console.log('--->>> AT_HASH - key is '+prev.client.simmetricKey);
-                            var hbuf = crypto.createHmac('sha256', prev.client.simmetricKey).update(access).digest();
-                            //p.at_hash = base64url(hbuf.toString('ascii', 0, hbuf.length/2));
+                            var hbuf = crypto.createHash('sha256').update(access).digest();
+                            p.at_hash = base64url(hbuf.slice(0, hbuf.length/2));
                             //p.auth_time = prev.auth.createdAt;
                             if(id_token.nonce) p.nonce = id_token.nonce;
                             if(id_token.acr) p.acr = id_token.acr;
